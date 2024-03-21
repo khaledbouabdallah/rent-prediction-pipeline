@@ -23,21 +23,27 @@ ROBOTSTXT_OBEY = True
 # Splash Server Endpoint
 SPLASH_URL = 'http://localhost:8050'
 
+SCRAPEOPS_API_KEY = 'REMOVED_API_KEY'
+SCRAPEOPS_FAKE_BROWSER_HEADER_ENDPOINT = 'https://headers.scrapeops.io/v1/browser-headers'
+SCRAPEOPS_FAKE_USER_AGENT_ENDPOINT = True
+SCRAPEOPS_NUM_RESULTS = 50
+
 
 # Enable Splash downloader middleware and change HttpCompressionMiddleware priority
 DOWNLOADER_MIDDLEWARES = {
-    'scrapy_splash.SplashCookiesMiddleware': 723,
-    'scrapy_splash.SplashMiddleware': 725,
-    'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
+   # 'scrapy_splash.SplashCookiesMiddleware': 723,
+   # 'scrapy_splash.SplashMiddleware': 725,
+   # 'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
+    'bigdata.middlewares.ScrapeOpsFakeBrowserHeaderAgentMiddleware': 400,
 }
 
 # Enable Splash Deduplicate Args Filter
 SPIDER_MIDDLEWARES = {
-    'scrapy_splash.SplashDeduplicateArgsMiddleware': 100,
+    #'scrapy_splash.SplashDeduplicateArgsMiddleware': 100,
 }
 
 # Define the Splash DupeFilter
-DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
+#DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
 
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
