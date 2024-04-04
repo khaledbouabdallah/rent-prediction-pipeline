@@ -1,0 +1,14 @@
+venv
+*.ipynb
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyz
+*.pyw
+*.pyi
+*.pyinstaller/
+dist/
+build/
+*.egg-info/
+.vscode/
