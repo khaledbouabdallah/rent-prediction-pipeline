@@ -31,19 +31,19 @@ SCRAPEOPS_NUM_RESULTS = 50
 
 # Enable Splash downloader middleware and change HttpCompressionMiddleware priority
 DOWNLOADER_MIDDLEWARES = {
-   # 'scrapy_splash.SplashCookiesMiddleware': 723,
-   # 'scrapy_splash.SplashMiddleware': 725,
-   # 'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
+    'scrapy_splash.SplashCookiesMiddleware': 723,
+    'scrapy_splash.SplashMiddleware': 725,
+    'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
     'bigdata.middlewares.ScrapeOpsFakeBrowserHeaderAgentMiddleware': 400,
 }
 
 # Enable Splash Deduplicate Args Filter
 SPIDER_MIDDLEWARES = {
-    #'scrapy_splash.SplashDeduplicateArgsMiddleware': 100,
+    'scrapy_splash.SplashDeduplicateArgsMiddleware': 100,
 }
 
-# Define the Splash DupeFilter
-#DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
+ # Define the Splash DupeFilter
+DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
 
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
@@ -89,9 +89,9 @@ SPIDER_MIDDLEWARES = {
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "bigdata.pipelines.BigdataPipeline": 300,
-#}
+ITEM_PIPELINES = {
+    "bigdata.pipelines.LocServiceAdPipeline": 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
