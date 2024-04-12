@@ -25,6 +25,16 @@ class LocServiceAdPipeline:
             value = adapter.get(key)
             if value and key != "url" and key != "features":
                 adapter[key] = value.strip()   
+        
+        # Convert features to str (for SQL insert)
+        adapter["features"] = ";".join(adapter["features"])
+        
+        # Fill missing values with empty string
+        for key in ["ad_type", "available","furniture", "description", "energy_DPE", "energy_GES"]:
+            value = adapter.get(key)
+            if not value:
+                adapter[key] = ""
+        
         # Convert features to float 
         for key in ["longitude", "latitude", "price", "area"]:
             value = adapter.get(key)
@@ -50,26 +60,92 @@ class SaveToPostgresPipeline:
         
         ## Create cursor, used to execute commands
         self.cur = self.connection.cursor()
-        
+                 
         ## Create books table if none exists
         self.cur.execute("""
-        CREATE TABLE IF NOT EXISTS books(
+        CREATE TABLE IF NOT EXISTS ads(
             id serial PRIMARY KEY, 
-            url VARCHAR(255),
+            department_name VARCHAR(255),
+            department_number INTEGER,
+            city_name VARCHAR(255),
             title text,
-            upc VARCHAR(255),
-            product_type VARCHAR(255),
-            price_excl_tax DECIMAL,
-            price_incl_tax DECIMAL,
-            tax DECIMAL,
+            ad_type VARCHAR(255),
+            latitude DECIMAL,
+            longitude DECIMAL,
             price DECIMAL,
-            availability INTEGER,
-            num_reviews INTEGER,
-            stars INTEGER,
-            category VARCHAR(255),
-            description text
+            area DECIMAL,
+            available VARCHAR(255),
+            furniture VARCHAR(255),
+            energy_DPE VARCHAR(255),
+            energy_GES VARCHAR(255),
+            description text,
+            features text,
+            url VARCHAR(255)
         )
         """)
 
     def process_item(self, item, spider):
+
+        ## Define insert statement
+        self.cur.execute(""" insert into ads (
+            department_name,
+            department_number,
+            city_name,
+            title,
+            ad_type,
+            latitude,
+            longitude,
+            price,
+            area,
+            available,
+            furniture,
+            energy_DPE,
+            energy_GES,
+            description,
+            features,
+            url
+            ) values (
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s
+                )""", (
+            item.get('department_name'),
+            item.get('department_number'),
+            item.get('city_name'),
+            item.get('title'),
+            item.get('ad_type'),
+            item.get('latitude'),
+            item.get('longitude'),
+            item.get('price'),
+            item.get('area'),
+            item.get('available'),
+            item.get('furniture'),
+            item.get('energy_DPE'),
+            item.get('energy_GES'),
+            item.get('description'),
+            item.get('features'),
+            item.get('url')
+        ))
+
+        ## Execute insert of data into database
+        self.connection.commit()
         return item
+
+    def close_spider(self, spider):
+
+        ## Close cursor & connection to database 
+        self.cur.close()
+        self.connection.close()
