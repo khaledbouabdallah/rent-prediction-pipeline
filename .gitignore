@@ -12,3 +12,9 @@ dist/
 build/
 *.egg-info/
 .vscode/
+
+# Jupyter Notebook
+.ipynb
+
+# test csv temp files
+test*
