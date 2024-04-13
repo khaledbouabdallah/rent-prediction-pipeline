@@ -89,13 +89,17 @@ class LocServiceSpider(scrapy.Spider):
             csv_reader = csv.reader(file)
             # Skip the header
             next(csv_reader)
-            for row in csv_reader:
-                #kwargs = {"metadata": row[0:3], "first": True}
+            for i,row in enumerate(csv_reader):
+                if i < 46:
+                    continue
+                if i == 10000:
+                    break
+                # logger.info(f"*************************")
+                # logger.info(f"Department: {row[0]} - {row[1]}")
+                # logger.info(f"*************************")
                 partial_callback = functools.partial(self.parse, metadata=row[0:3], first=True)
                 yield scrapy.Request(url=row[3], callback=partial_callback) 
-                print ("=====================")
-                print("got first city: ", row[3])
-                break # remove this line to get all the cities
+
 
 
     def parse(self, response, **kwargs):
@@ -105,68 +109,103 @@ class LocServiceSpider(scrapy.Spider):
         first = kwargs.get("first")
         department_name,department_number,city_name = metadata
         
+        # logger.info(f"****")
+        # logger.info(f"{response.url}")
+        # logger.info(f"{department_name} - {department_number} - {city_name}")
+        # logger.info(f"****")
+       
+        
         # parse ads urls
         ads_links = response.css(".extraitproprietaires a")
         for ad in ads_links:
             ad_link = ad.xpath("@href").get()
             partial_callback = functools.partial(self.parse_ad_splash, metadata=metadata)
             yield response.follow(ad_link, callback=partial_callback)
-            break # remove this line to get all the ads
+        
             
-        
-        print ("=====================")    
-        print("got first page of ads for city: ", city_name)
-        print("department name: ", department_name)
-        print("number of ads: ", len(ads_links))
-        
-          
-        # check for other pages
-        # if first:
-        #     last_page = response.css(".pagination ::text").getall()[-1]
-        #     next_pages = self._next_pages_(response.url, int(last_page))
-        #     for page in next_pages:
-        #         partial_callback = functools.partial(self.parse, metadata=metadata, first=False)
-        #         yield response.follow(page, callback=partial_callback)
+        #check for other pages
+        if first:
+            last_page = response.css(".pagination ::text").getall()
+            if last_page:
+                last_page = last_page[-1]
+                next_pages = self._next_pages_(response.url, int(last_page))
+                for page in next_pages:
+                    partial_callback = functools.partial(self.parse, metadata=metadata, first=False)
+                    yield response.follow(page, callback=partial_callback)
+    
+            
     
     def parse_ad_splash(self, response, **kwargs):
         
+        
         metadata = kwargs.get("metadata")
-        
-        print("*************************")
-        print("IN PARSE_AD_SPLASH")
-        print("*************************")
-        
+        to_splash = response.css("#propKQ").getall()
         url = response.url
         
-        
-        partial_callback = functools.partial(self.parse_ad, metadata=metadata)
-        print("got ad url [in splash parse_ad_splash]: ", response.url)
-        
-        yield SplashRequest(
-            url, 
-            callback=partial_callback, 
-            endpoint='execute', 
-            args={'wait': 1, 'lua_source': self.lua_script, url: url}
-            )
+        if to_splash:
+            partial_callback = functools.partial(self.parse_ad, metadata=metadata, splash=True)
+            yield  SplashRequest(
+                        url, 
+                        callback=partial_callback, 
+                        endpoint='execute', 
+                        args={'wait': 0, 'lua_source': self.lua_script, url: url}
+                        )
+        else:
+            department_name,department_number,city_name = metadata
+            html = response
+            lat_value = None
+            lon_value = None
+             # parse html content
+            price = html.css(".loyer ::text").getall()[1].split(" ")[0].replace(".","")
+            area = html.css(".surface ::text").getall()[1].split(" ")[0]
+            available = html.css(".dispo ::text").getall()[1]
+            furniture = html.css(".meuble ::text").getall()[1]
+            energy_DPE,energy_GES = self.extract_dpe_ges(html.css(".dpe div ::text").getall())
+            description = html.css(".innerDetail p ::text").getall()[0].replace("\n", "")
+            features = html.css(".innerDetail ul li ::text").getall()
+            ad_item = AdItem()
+            ad_item['department_name'] = department_name
+            ad_item['department_number'] = department_number
+            ad_item['city_name'] = city_name
+            ad_item['title'] = html.css("title::text").get()
+            ad_item['ad_type'] = html.css("#listing_type .current ::text").get()
+            ad_item['latitude'] = lat_value
+            ad_item['longitude'] = lon_value
+            ad_item['price'] = price
+            ad_item['area'] = area
+            ad_item['available'] = available
+            ad_item['furniture'] = furniture
+            ad_item['energy_DPE'] = energy_DPE
+            ad_item['energy_GES'] = energy_GES
+            ad_item['description'] = description
+            ad_item['features'] = features
+            ad_item['url'] = response.url
+
+            yield ad_item
+      
         
     def parse_ad(self, response, **kwargs):
         
         # get metadata
         metadata = kwargs.get("metadata")
+        splash = kwargs.get("splash")
         department_name,department_number,city_name = metadata
         
-        print("XXXXXXXXXXXXXXXXXXX")
-        print("IN PARSE_AD")
-        print("XXXXXXXXXXXXXXXXXXX")
         
-        # get latitudes and longitudes from Network tab
-        xml = response.data["har"]["log"]["entries"][0]["response"]["content"]["text"]
-        xml = base64.b64decode(xml).decode("utf-8")
-        lat_value = re.findall(r'lat="([^"]+)"', xml)[0]
-        lon_value = re.findall(r'lon="([^"]+)"', xml)[0]
-        # get html content
-        source = response.data["html"].replace("=\\", "=")
-        html = scrapy.Selector(text=source)
+        if splash:
+            # get latitudes and longitudes from Network tab
+            xml = response.data["har"]["log"]["entries"][0]["response"]["content"]["text"]
+            xml = base64.b64decode(xml).decode("utf-8")
+            lat_value = re.findall(r'lat="([^"]+)"', xml)[0]
+            lon_value = re.findall(r'lon="([^"]+)"', xml)[0]
+            # get html content
+            source = response.data["html"].replace("=\\", "=")
+            html = scrapy.Selector(text=source)
+        else:
+            html = response
+            lat_value = ''
+            lon_value = ''
+        
         # parse html content
         price = html.css(".loyer ::text").getall()[1].split(" ")[0].replace(".","")
         area = html.css(".surface ::text").getall()[1].split(" ")[0]
@@ -198,6 +237,7 @@ class LocServiceSpider(scrapy.Spider):
         yield ad_item
               
         # function to format the next pages 
+    
     def _next_pages_(self,link,max_pages):
         x,y = link[:-5], link[-5:]
         x = x + "-p"
@@ -213,11 +253,18 @@ class LocServiceSpider(scrapy.Spider):
                         l.append(i.strip())
             else:
                 l.append(t.strip())
-        return l[1], l[3]
+        if l:
+            return l[1], l[3]
+        else:
+            return None, None
     
     
 
     # Test Spider
+
+# Spider to scrap one ad
+# Run the spider with the following command:
+# scrapy crawl testSpider -o test.json
 class TestSpider(scrapy.Spider):
     name = "testSpider"
     allowed_domains = ['locservice.fr']
@@ -239,8 +286,9 @@ class TestSpider(scrapy.Spider):
                 """
                 
     def start_requests(self):
-        #url = 'https://www.locservice.fr/paris-75/location-appartement-paris-13/5960.html'
-        url = 'https://www.locservice.fr/ain-01/location-appartement-tenay/612747.html'
+        
+        url = 'https://www.locservice.fr/paris-75/location-appartement-paris-13/5960.html'
+        
         
         yield SplashRequest(
             url, 
