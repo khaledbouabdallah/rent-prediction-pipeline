@@ -1,5 +1,4 @@
 venv
-*.ipynb
 __pycache__/
 *.pyc
 *.pyo
@@ -14,9 +13,9 @@ build/
 .vscode/
 
 # Jupyter Notebook
-.ipynb
+play.ipynb
 
-# test csv temp files
+# test files
 test*
 
 # logs 
