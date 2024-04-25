@@ -98,7 +98,7 @@ def insert_place(place):
         if connection:
             cursor.close()
             connection.close()
-            print("PostgreSQL connection is closed")
+            #print("PostgreSQL connection is closed")
             
 
 def select_all_places(save=False):
@@ -124,7 +124,7 @@ def select_all_places(save=False):
         if save:
             with open('places.csv', 'w', newline='') as file:
                 writer = csv.writer(file)
-                writer.writerow("id","ad_id","name","type","types","latitude","longitude","distance")
+                writer.writerow(("id","ad_id","name","type","types","latitude","longitude","distance"))
                 writer.writerows(places)
         
         return places
