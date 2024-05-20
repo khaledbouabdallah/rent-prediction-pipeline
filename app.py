@@ -45,11 +45,12 @@ def call_api(input):
 
 @st.cache_data
 def load_data():
-    explainer = joblib.load(open('prediction/models/xgboost_explainer.pkl', 'rb'))
+    #explainer = joblib.load(open('prediction/models/xgboost_explainer.pkl', 'rb'))
     data = pd.read_csv('data/ads_stations_weighted.csv')
     model = joblib.load(open('prediction/models/xgboost_model.pkl', 'rb'))
     scaler = joblib.load(open('prediction/models/xgboost_scaler.pkl', 'rb'))
     explanation = joblib.load(open('prediction/models/xgboost_explanation.pkl', 'rb'))
+    explainer = shap.TreeExplainer(model)
     return data, model, explainer, scaler, explanation
 
 def st_shap(plot, height=None):
@@ -98,7 +99,8 @@ def furnished(x):
 def main():
     
     input = {}
-    data, model, explainer, scaler, explanation = load_data()
+    data, model, explainer , scaler, explanation = load_data()
+    
     # shap_values = explanation.values
     # X = data.drop(columns=['price'])
     # y = data['price']
